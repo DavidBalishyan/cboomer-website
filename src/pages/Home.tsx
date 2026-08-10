@@ -2,17 +2,17 @@ import { component$ } from '@builder.io/qwik'
 import { Terminal } from '../components/Terminal'
 
 const helpOutput = `$ cboomer --help
-Usage: cboomer [OPTIONS]
-Zoomer application for Linux with pan, zoom,
-flashlight effects, and live window tracking.
+cboomer  -  fullscreen screenshot viewer
+
+Usage:  cboomer [OPTIONS]
 
 Options:
-  --help           Show this help message
-  --version        Show version
-  --delay <ms>     Delay before capture (ms)
-  --new-config     Generate default config file
-  --config <path>  Use custom config file
-  --windowed       Run in windowed mode`
+  -d, --delay <seconds>    delay execution by <seconds>
+  -h, --help               show this help and exit
+      --new-config [path]  generate a default config at [path]
+  -c, --config <path>      use config at <path>
+  -V, --version            show version and exit
+  -w, --windowed           windowed mode instead of fullscreen`
 
 export const Home = component$(() => {
   return (
@@ -25,12 +25,21 @@ export const Home = component$(() => {
           A fullscreen screenshot viewer for Linux with pan, zoom, flashlight
           effects, and live window tracking. Built with C11, X11, and OpenGL.
         </p>
-        <a
-          href="#/download"
-          class="mt-8 inline-block bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold rounded-lg px-6 py-3 transition-colors"
-        >
-          Download now
-        </a>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a
+            href="#/download"
+            class="inline-block bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold rounded-lg px-6 py-3 transition-colors"
+          >
+            Build from source
+          </a>
+          <a
+            href="https://mega.nz/file/nq4HSBoK#qp-FGWQrytO1ccjn25z4TjMenMdqzSZIrt-hiE6uy1U"
+            target="_blank"
+            class="inline-block bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold rounded-lg px-6 py-3 transition-colors"
+          >
+            Watch the demo
+          </a>
+        </div>
       </section>
 
       <section class="w-full">

@@ -37,6 +37,12 @@ export const Footer = component$(() => {
             DX
           </a>
           <a
+            href="#/changelog"
+            class="text-zinc-400 hover:text-white transition-colors"
+          >
+            Changelog
+          </a>
+          <a
             href="#/about"
             class="text-zinc-400 hover:text-white transition-colors"
           >

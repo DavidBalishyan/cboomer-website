@@ -33,10 +33,24 @@ $ ninja
 $ python3 scripts/experimental/generate.py --dev --live
 $ ninja`
 
+const makeoverExample = `$ ./scripts/makeover
+$ ./scripts/makeover dev live
+$ ./scripts/makeover test
+$ ./scripts/makeover --list`
+
+const zigExample = `$ zig build
+$ zig build -Ddev -Dlive -Dmitshm -Dselect
+$ zig build test
+$ zig build clean`
+
 const scripts = [
   {
     cmd: 'scripts/install-deps.sh',
-    desc: 'Detects your distro and installs the right packages. Needs root. Supports Debian, Fedora, Arch, Alpine, openSUSE, Void.',
+    desc: 'Installs the compiler and library packages for Debian, Fedora, Arch, Alpine, openSUSE, or Void. It needs root access.',
+  },
+  {
+    cmd: 'scripts/makeover [target ...]',
+    desc: 'Vendored Python 3 build runner for Buildfile. Builds cboomer, runs tests, and supports the same stackable feature targets as Make.',
   },
   {
     cmd: 'scripts/lint.sh',
@@ -44,7 +58,7 @@ const scripts = [
   },
   {
     cmd: 'scripts/memcheck.sh [asan|valgrind|all]',
-    desc: 'Rebuilds tests with AddressSanitizer + UBSan, then runs them under valgrind. Objects go to build/asan so they stay separate from normal builds.',
+    desc: 'Runs tests with AddressSanitizer and UBSan, Valgrind, or both. Sanitized objects stay in build/asan.',
   },
   {
     cmd: 'scripts/release.sh <version>',
@@ -64,7 +78,7 @@ const scripts = [
   },
   {
     cmd: 'scripts/gen_shaders.sh <output>',
-    desc: 'Converts all .glsl files in src/shaders/ into C string constants in build/shaders.h. Called automatically by make.',
+    desc: 'Converts all .glsl files in src/shaders/ into C string constants in build/shaders.h. Called automatically by the build systems.',
   },
   {
     cmd: 'scripts/build-matrix.sh',
@@ -81,9 +95,9 @@ export const DX = component$(() => {
 
       <div class="space-y-6 text-zinc-400 text-lg mb-12">
         <p>
-          cboomer has a handful of scripts and tools that make working on the
-          codebase easier. Most of them you will not need day to day, but they
-          are there when you do.
+          The repository keeps its environment, test, shader, and release
+          helpers in the scripts directory. Make remains the authoritative
+          build system.
         </p>
       </div>
 
@@ -118,20 +132,65 @@ export const DX = component$(() => {
         </Terminal>
       </section>
 
+      {/* Makeover */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">Makeover</h2>
+        <p class="text-zinc-400 text-sm mb-4">
+          <a
+            href="https://github.com/davidBalishyan/makeover"
+            target="_blank"
+            class="text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            Makeover
+          </a>{' '}
+          lives in the repository as one executable Python script. It finds the
+          root Buildfile on its own. You can run it directly with Python 3.
+        </p>
+        <Terminal title="terminal" copyText={makeoverExample}>
+          <div class="text-zinc-400 whitespace-pre">
+            <span class="text-green-400">$</span> ./scripts/makeover{'\n'}
+            <span class="text-green-400">$</span> ./scripts/makeover dev live{'\n'}
+            <span class="text-green-400">$</span> ./scripts/makeover test{'\n'}
+            <span class="text-green-400">$</span> ./scripts/makeover --list
+          </div>
+        </Terminal>
+        <p class="text-zinc-400 text-sm mt-4">
+          Set CC, CFLAGS, PREFIX, and DESTDIR through environment variables.
+          Keep Buildfile in sync with Make when sources, shaders, flags,
+          libraries, or tests change.
+        </p>
+      </section>
+
+      {/* Zig */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">Zig</h2>
+        <p class="text-zinc-400 text-sm mb-4">
+          build.zig mirrors the Make build, including shader generation, tests,
+          cleanup, and the four feature flags.
+        </p>
+        <Terminal title="terminal" copyText={zigExample}>
+          <div class="text-zinc-400 whitespace-pre">
+            <span class="text-green-400">$</span> zig build{'\n'}
+            <span class="text-green-400">$</span> zig build -Ddev -Dlive -Dmitshm -Dselect{'\n'}
+            <span class="text-green-400">$</span> zig build test{'\n'}
+            <span class="text-green-400">$</span> zig build clean
+          </div>
+        </Terminal>
+      </section>
+
       {/* Ninja */}
       <section class="mb-12">
         <h2 class="text-2xl font-semibold text-zinc-100 mb-4">
           Ninja build (experimental)
         </h2>
         <p class="text-zinc-400 text-sm mb-4">
-          Ninja builds faster than make because it parallelizes by default and
-          tracks header dependencies through .d files. The catch is that Ninja
-          has no conditional logic of its own, so you need a generator script
-          to produce build.ninja.
+          Ninja runs jobs in parallel by default and tracks headers through .d
+          files. It needs a generator because build.ninja has no conditional
+          logic for cboomer's feature flags.
         </p>
         <p class="text-zinc-400 text-sm mb-4">
-          Two implementations exist: one in Perl, one in Python 3. They produce
-          the same output. Pick whichever you have installed.
+          The Perl and Python 3 generators produce the same file. Use whichever
+          interpreter is available.
         </p>
         <Terminal title="terminal" copyText={ninjaExample}>
           <div class="text-zinc-400 whitespace-pre">
@@ -209,25 +268,48 @@ export const DX = component$(() => {
         </div>
       </section>
 
+      {/* Contributing */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">
+          Contributing
+        </h2>
+        <p class="text-zinc-400 text-sm mb-4">
+          Read the{' '}
+          <a
+            href="https://github.com/DavidBalishyan/cboomer/blob/main/CONTRIBUTING.md"
+            target="_blank"
+            class="text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            contribution guide
+          </a>{' '}
+          before sending a change. It covers the required build, test, lint,
+          and review work.
+        </p>
+        <p class="text-zinc-400 text-sm">
+          The maintainer does not recommend using AI agents on cboomer. Anyone
+          who uses one still needs to understand every changed line, verify the
+          behavior, and take responsibility for the result.
+        </p>
+      </section>
+
       {/* Shader tooling */}
       <section class="mb-12">
         <h2 class="text-2xl font-semibold text-zinc-100 mb-4">
           Shader tooling
         </h2>
         <p class="text-zinc-400 text-sm mb-4">
-          The build converts .glsl files into C string constants in{' '}
+          The build turns .glsl files into C string constants in{' '}
           <code class="font-mono text-cyan-400 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">
             build/shaders.h
-          </code>
-          . This happens automatically via{' '}
+          </code>. The build runs{' '}
           <code class="font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">
             scripts/gen_shaders.sh
-          </code>
-          , which the Makefile calls during build.
+          </code>{' '}
+          automatically.
         </p>
         <p class="text-zinc-400 text-sm mb-4">
-          To add a new shader, use the shader script instead of doing it by
-          hand:
+          scripts/shader.sh creates the GLSL file, updates the Makefile and
+          generator, then adds a README placeholder:
         </p>
         <Terminal title="terminal" copyText="scripts/shader.sh new myeffect">
           <div class="text-zinc-400">
@@ -239,13 +321,14 @@ export const DX = component$(() => {
           </div>
         </Terminal>
         <p class="text-zinc-400 text-sm mt-4">
-          It creates the shader file from a template that already has all the
-          uniforms set up (cursorPos, windowSize, flShadow, flRadius,
-          cameraScale, mirror). You just fill in the effect in the{' '}
+          The template already declares cursorPos, windowSize, flShadow,
+          flRadius, cameraScale, and mirror. Write the effect in the{' '}
           <code class="font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">
             // TODO: implement shader effect
           </code>{' '}
-          section.
+          section. The script does not update ShaderMode, shader_names,
+          src/main.c, Buildfile, or build.zig. Add the new shader to those lists
+          before building.
         </p>
       </section>
     </div>

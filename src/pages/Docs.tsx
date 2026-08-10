@@ -2,31 +2,62 @@ import { component$ } from '@builder.io/qwik'
 import { Terminal } from '../components/Terminal'
 
 const buildVariants = [
-  { cmd: 'make', desc: 'Release build. Shaders get embedded in the binary.' },
-  { cmd: 'make dev', desc: 'Developer build. Enables Ctrl+R shader reload.' },
+  { cmd: 'make', desc: 'Build cboomer with its shaders embedded.' },
+  { cmd: 'make dev', desc: 'Allow Ctrl+R to reload shaders from disk.' },
   { cmd: 'make live', desc: 'Refreshes the screenshot every frame.' },
-  { cmd: 'make mitshm', desc: 'Live update via MIT-SHM extension. Faster, combine with live.' },
+  { cmd: 'make mitshm', desc: 'Use MIT-SHM for faster captures. Pair it with live.' },
   { cmd: 'make select', desc: 'Click a window to track it instead of the full screen.' },
 ]
 
+const makeoverExample = `$ ./scripts/makeover
+$ ./scripts/makeover dev live mitshm select
+$ ./scripts/makeover test
+$ ./scripts/makeover --list`
+
+const zigExample = `$ zig build
+$ zig build -Ddev -Dlive -Dmitshm -Dselect
+$ zig build test
+$ zig build run
+$ zig build clean`
+
+const ninjaExample = `$ perl scripts/experimental/generate.pl --dev --live
+$ ninja
+
+# The Python generator produces the same build file
+$ python3 scripts/experimental/generate.py --dev --live
+$ ninja`
+
+const testExample = `$ make test
+$ ./scripts/makeover test
+$ zig build test`
+
+const commandLineOptions = [
+  { option: '-d, --delay <seconds>', desc: 'Wait before capturing the screen.' },
+  { option: '-h, --help', desc: 'Print the help text and exit.' },
+  { option: '--new-config [path]', desc: 'Write a default config, optionally at a custom path.' },
+  { option: '-c, --config <path>', desc: 'Load a config file from a custom path.' },
+  { option: '-V, --version', desc: 'Print the embedded Git commit and exit.' },
+  { option: '-w, --windowed', desc: 'Open a normal window and remember its position.' },
+]
+
 const controls = [
-  { key: 'Drag', desc: 'Pan the image' },
-  { key: 'Scroll', desc: 'Zoom in / out' },
+  { key: 'Left drag', desc: 'Pan the image' },
+  { key: 'Scroll', desc: 'Zoom in or out' },
   { key: '= / -', desc: 'Zoom in / out' },
-  { key: '0', desc: 'Reset position, scale, velocity, and mirror' },
-  { key: '1 2 3 4 5', desc: 'Zoom presets: 100%, 200%, 400%, 800%, 1600%' },
-  { key: 'arrows / h j k l', desc: 'Pan image' },
+  { key: '0', desc: 'Reset position, scale, velocity, and mirror state' },
+  { key: '1 2 3 4 5', desc: 'Set zoom to 100%, 200%, 400%, 800%, or 1600%' },
+  { key: 'arrows / h j k l', desc: 'Pan the image' },
   { key: 'Ctrl+f/b/n/p', desc: 'Pan image (small step, Emacs-style)' },
-  { key: 'i', desc: 'Toggle texture filtering: nearest <-> linear' },
-  { key: 'o', desc: 'Toggle OSD (shader, zoom, FPS, color under cursor)' },
+  { key: 'i', desc: 'Switch between nearest and linear texture filtering' },
+  { key: 'o', desc: 'Show or hide the OSD with shader, zoom, FPS, color, and filter details' },
   { key: 'q / Esc', desc: 'Quit' },
-  { key: 'r', desc: 'Reload config file' },
+  { key: 'r', desc: 'Reload the config file' },
   { key: 'm', desc: 'Mirror the image horizontally' },
-  { key: 'f', desc: 'Toggle flashlight' },
+  { key: 'f', desc: 'Turn the flashlight on or off' },
   { key: 't', desc: 'Cycle through all 12 shaders' },
-  { key: 's', desc: 'Save current view to PPM or PNG' },
-  { key: 'Ctrl+scroll', desc: 'Adjust flashlight radius' },
-  { key: 'Ctrl+[ / ]', desc: 'Rotate image 90 degrees' },
+  { key: 's', desc: 'Save the rendered view, with shaders, as PPM or PNG' },
+  { key: 'Ctrl+scroll / +/-', desc: 'Adjust the radius while the flashlight is on' },
+  { key: 'Ctrl+[ / Ctrl+]', desc: 'Rotate 90 degrees counter-clockwise or clockwise' },
   { key: 'Ctrl+r', desc: 'Reload shaders from disk (dev build only)' },
 ]
 
@@ -56,11 +87,11 @@ const configParams = [
   { key: 'scroll_invert', def: 'false', desc: 'Flip scroll-to-zoom direction' },
   { key: 'osd', def: 'false', desc: 'Show OSD on startup (toggle with o key)' },
   { key: 'smooth_reset', def: 'true', desc: 'Animate back to origin on 0 key' },
-  { key: 'font', def: '(auto)', desc: 'Path or name for OSD font' },
+  { key: 'font', def: '(auto-detect)', desc: 'Path or system name for the OSD font' },
   { key: 'screenshot_dir', def: '~/Pictures/Screenshots', desc: 'Where s saves views' },
   { key: 'screenshot_format', def: '"ppm"', desc: 'ppm or png for s key saves' },
   { key: 'ppm_save', def: 'false', desc: 'Save a PPM on startup' },
-  { key: 'ppm_save_path', def: '(config dir)', desc: 'Path for startup PPM save' },
+  { key: 'ppm_save_path', def: '$HOME/.config/cboomer/screenshot.ppm', desc: 'Path for the startup PPM save' },
 ]
 
 const configExample = `# ~/.config/cboomer/config
@@ -85,10 +116,10 @@ flashlight_radius = 200.0
 scroll_invert = false
 
 # Screenshot saves
-screenshot_dir = ~/Pictures/Screenshots
+screenshot_dir = "~/Pictures/Screenshots"
 screenshot_format = "png"
 ppm_save = false
-ppm_save_path = ~/config/cboomer/screenshot.ppm
+ppm_save_path = "$HOME/.config/cboomer/screenshot.ppm"
 
 # OSD font (auto-detect if empty)
 font = "DejaVuSans"
@@ -103,7 +134,7 @@ min_scale = 0.01          # double
 drag_friction = 6.0       # double
 osd = true                # bool
 default_shader = "Normal" # string
-screenshot_dir = ~/Pictures  # path (~ expands to $HOME)
+screenshot_dir = "~/Pictures" # string path (~ expands to $HOME)
 flashlight_radius = 200  # int or double`
 
 export const Docs = component$(() => {
@@ -122,6 +153,31 @@ export const Docs = component$(() => {
             <span class="text-green-400">$</span> ./cboomer
           </div>
         </Terminal>
+      </section>
+
+      {/* Command line */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">
+          Command-line options
+        </h2>
+        <div class="rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+          {commandLineOptions.map((item, i) => (
+            <div
+              key={item.option}
+              class={
+                'px-5 py-3 md:flex md:items-start md:gap-4' +
+                (i < commandLineOptions.length - 1 ? ' border-b border-zinc-800' : '')
+              }
+            >
+              <code class="block text-sm font-mono text-cyan-400 bg-zinc-950 px-2 py-0.5 rounded whitespace-nowrap md:min-w-[220px] w-fit">
+                {item.option}
+              </code>
+              <span class="block text-sm text-zinc-400 mt-2 md:mt-0">
+                {item.desc}
+              </span>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Build Variants */}
@@ -151,6 +207,95 @@ export const Docs = component$(() => {
             make dev live mitshm select
           </code>
         </p>
+      </section>
+
+      {/* Makeover */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">
+          Makeover build
+        </h2>
+        <p class="text-zinc-400 text-sm mb-4">
+          The repository includes a vendored copy of{' '}
+          <a
+            href="https://github.com/davidBalishyan/makeover"
+            target="_blank"
+            class="text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            Makeover
+          </a>{' '}
+          and a Buildfile that mirrors the GNU Make targets. It only needs
+          Python 3 and does not require a separate installation.
+        </p>
+        <Terminal title="terminal" copyText={makeoverExample}>
+          <div class="text-zinc-400 whitespace-pre">
+            <span class="text-green-400">$</span> ./scripts/makeover{'\n'}
+            <span class="text-green-400">$</span> ./scripts/makeover dev live mitshm select{'\n'}
+            <span class="text-green-400">$</span> ./scripts/makeover test{'\n'}
+            <span class="text-green-400">$</span> ./scripts/makeover --list
+          </div>
+        </Terminal>
+        <p class="text-zinc-400 text-sm mt-4">
+          Feature targets can be combined. Set overrides through the
+          environment, such as{' '}
+          <code class="font-mono text-cyan-400 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">
+            CC=clang ./scripts/makeover
+          </code>
+          . Run{' '}
+          <code class="font-mono text-cyan-400 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">
+            ./scripts/makeover clean
+          </code>{' '}
+          before switching unrelated feature or compiler-flag combinations.
+        </p>
+      </section>
+
+      {/* Other build systems */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">
+          Zig and Ninja
+        </h2>
+        <p class="text-zinc-400 text-sm mb-4">
+          build.zig supports the same four feature flags as Make. Pass each
+          flag with <code class="font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">-D</code>.
+        </p>
+        <Terminal title="Zig" copyText={zigExample}>
+          <div class="text-zinc-400 whitespace-pre">
+            <span class="text-green-400">$</span> zig build{'\n'}
+            <span class="text-green-400">$</span> zig build -Ddev -Dlive -Dmitshm -Dselect{'\n'}
+            <span class="text-green-400">$</span> zig build test{'\n'}
+            <span class="text-green-400">$</span> zig build run{'\n'}
+            <span class="text-green-400">$</span> zig build clean
+          </div>
+        </Terminal>
+
+        <p class="text-zinc-400 text-sm mt-6 mb-4">
+          The experimental Ninja path starts with either the Perl or Python
+          generator. Both generators accept dev, live, mitshm, and select.
+        </p>
+        <Terminal title="Ninja (experimental)" copyText={ninjaExample}>
+          <div class="text-zinc-400 whitespace-pre">
+            <span class="text-green-400">$</span> perl scripts/experimental/generate.pl --dev --live{'\n'}
+            <span class="text-green-400">$</span> ninja{'\n\n'}
+            <span class="text-zinc-500"># The Python generator produces the same build file</span>{'\n'}
+            <span class="text-green-400">$</span> python3 scripts/experimental/generate.py --dev --live{'\n'}
+            <span class="text-green-400">$</span> ninja
+          </div>
+        </Terminal>
+      </section>
+
+      {/* Testing */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">Testing</h2>
+        <p class="text-zinc-400 text-sm mb-4">
+          The test suite has 38 checks for config parsing, vector math, camera
+          behavior, and PPM and PNG output. It does not open an X display.
+        </p>
+        <Terminal title="terminal" copyText={testExample}>
+          <div class="text-zinc-400 whitespace-pre">
+            <span class="text-green-400">$</span> make test{'\n'}
+            <span class="text-green-400">$</span> ./scripts/makeover test{'\n'}
+            <span class="text-green-400">$</span> zig build test
+          </div>
+        </Terminal>
       </section>
 
       {/* Controls */}
@@ -204,8 +349,7 @@ export const Docs = component$(() => {
           The config file lives at{' '}
           <code class="font-mono text-cyan-400 bg-zinc-800 px-1.5 py-0.5 rounded">
             $HOME/.config/cboomer/config
-          </code>
-          . Generate a default one:
+          </code>. Generate a default one:
         </p>
         <Terminal title="terminal" copyText="cboomer --new-config">
           <div class="text-zinc-400">
@@ -218,8 +362,8 @@ export const Docs = component$(() => {
           Config syntax
         </h3>
         <p class="text-zinc-400 text-sm mb-4">
-          The format is <code class="font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">key = value</code>.
-          Values are typed by their literal form, not by annotation.
+          Write each setting as <code class="font-mono text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded text-xs">key = value</code>.
+          The parser gets the type from the value itself.
         </p>
         <Terminal title="config syntax" copyText={configSyntaxExample}>
           <div class="text-zinc-400 whitespace-pre text-xs">{configSyntaxExample}</div>
@@ -268,6 +412,26 @@ export const Docs = component$(() => {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Editor support */}
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold text-zinc-100 mb-4">
+          Editor support
+        </h2>
+        <p class="text-zinc-400 text-sm">
+          The editors directory contains config syntax files for Vim, Neovim,
+          and Emacs. They recognize cboomer settings, strings, numbers,
+          booleans, and comments. See the{' '}
+          <a
+            href="https://github.com/DavidBalishyan/cboomer/tree/main/editors"
+            target="_blank"
+            class="text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            editor setup notes
+          </a>{' '}
+          for installation commands.
+        </p>
       </section>
     </div>
   )

@@ -10,6 +10,7 @@ import { About } from './pages/About'
 import { Download } from './pages/Download'
 import { Docs } from './pages/Docs'
 import { DX } from './pages/DX'
+import { Changelog } from './pages/Changelog'
 
 export const App = component$(() => {
   const route = useSignal(getInitialRoute())
@@ -35,6 +36,7 @@ export const App = component$(() => {
         {route.value === '/download' && <Download />}
         {route.value === '/docs' && <Docs />}
         {route.value === '/dx' && <DX />}
+        {route.value === '/changelog' && <Changelog />}
       </main>
       <Footer />
     </div>
@@ -49,6 +51,6 @@ function getHashRoute(): string {
 function getInitialRoute(): string {
   if (typeof window === 'undefined') return '/'
   const hash = window.location.hash.slice(1) || '/'
-  const valid = ['/', '/about', '/download', '/docs', '/dx']
+  const valid = ['/', '/about', '/download', '/docs', '/dx', '/changelog']
   return valid.includes(hash) ? hash : '/'
 }

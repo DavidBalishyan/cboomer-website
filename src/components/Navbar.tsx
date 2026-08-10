@@ -8,6 +8,7 @@ interface NavbarProps {
 const links = [
   { label: 'Home', path: '/' },
   { label: 'Docs', path: '/docs' },
+  { label: 'Changelog', path: '/changelog' },
   { label: 'DX', path: '/dx' },
   { label: 'About', path: '/about' },
   { label: 'Download', path: '/download' },
