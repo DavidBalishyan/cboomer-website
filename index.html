@@ -8,6 +8,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
     <title>cboomer</title>
+    <script>
+      try {
+        var savedLang = localStorage.getItem('cboomer-language');
+        if (savedLang === 'en' || savedLang === 'de' || savedLang === 'ru' || savedLang === 'fr' || savedLang === 'hy') {
+          document.documentElement.lang = savedLang;
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="app"></div>

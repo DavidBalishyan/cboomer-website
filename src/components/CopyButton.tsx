@@ -1,4 +1,5 @@
 import { component$, useSignal } from '@builder.io/qwik'
+import { dictionaries, useLanguage } from '../i18n'
 
 interface CopyButtonProps {
   text: string
@@ -6,6 +7,8 @@ interface CopyButtonProps {
 
 export const CopyButton = component$<CopyButtonProps>(({ text }) => {
   const copied = useSignal(false)
+  const lang = useLanguage()
+  const t = dictionaries[lang.value]
 
   return (
     <button
@@ -17,7 +20,7 @@ export const CopyButton = component$<CopyButtonProps>(({ text }) => {
         }, 2000)
       }}
       class="text-zinc-400 hover:text-white transition-colors p-1 rounded"
-      aria-label="Copy to clipboard"
+      aria-label={t.common.copyToClipboard}
     >
       {copied.value ? (
         <svg

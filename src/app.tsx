@@ -1,8 +1,15 @@
 import {
   component$,
+  useContextProvider,
   useSignal,
   useVisibleTask$,
 } from '@builder.io/qwik'
+import {
+  getInitialLanguage,
+  LanguageContext,
+  STORAGE_KEY,
+  type Language,
+} from './i18n'
 import { Navbar } from './components/Navbar'
 import { Footer } from './components/Footer'
 import { Home } from './pages/Home'
@@ -14,6 +21,15 @@ import { Changelog } from './pages/Changelog'
 
 export const App = component$(() => {
   const route = useSignal(getInitialRoute())
+  const lang = useSignal<Language>(getInitialLanguage())
+
+  useContextProvider(LanguageContext, lang)
+
+  useVisibleTask$(({ track }) => {
+    const language = track(() => lang.value)
+    document.documentElement.lang = language
+    localStorage.setItem(STORAGE_KEY, language)
+  })
 
   useVisibleTask$(() => {
     const onHashChange = () => {
